@@ -1,0 +1,77 @@
+name: penpot
+
+services:
+  penpot-frontend:
+    image: penpotapp/frontend:latest
+    container_name: penpot-frontend
+    restart: always
+    ports:
+      - "0.0.0.0:9001:8080"
+    volumes:
+      - penpot_assets:/opt/data/assets
+      - ./index.html:/var/www/app/index.html:ro
+    depends_on:
+      - penpot-backend
+      - penpot-exporter
+    environment:
+      PENPOT_FLAGS: "enable-login-with-password enable-registration"
+
+  penpot-backend:
+    image: penpotapp/backend:latest
+    container_name: penpot-backend
+    restart: always
+    volumes:
+      - penpot_assets:/opt/data/assets
+    depends_on:
+      penpot-postgres:
+        condition: service_healthy
+      penpot-redis:
+        condition: service_started
+    environment:
+      PENPOT_FLAGS: "enable-login-with-password enable-registration enable-smtp disable-email-verification"
+      PENPOT_SECRET_KEY: "penpot-secret-key-change-in-production"
+      PENPOT_PUBLIC_URI: "http://localhost:9001"
+      PENPOT_DATABASE_URI: "postgresql://penpot-postgres/penpot"
+      PENPOT_DATABASE_USERNAME: "penpot"
+      PENPOT_DATABASE_PASSWORD: "penpot"
+      PENPOT_REDIS_URI: "redis://penpot-redis/0"
+      PENPOT_ASSETS_STORAGE_BACKEND: "assets-fs"
+      PENPOT_STORAGE_ASSETS_FS_DIRECTORY: "/opt/data/assets"
+      PENPOT_TELEMETRY_ENABLED: "false"
+      PENPOT_SMTP_DEFAULT_FROM: "noreply@localhost"
+      PENPOT_SMTP_DEFAULT_REPLY_TO: "noreply@localhost"
+
+  penpot-exporter:
+    image: penpotapp/exporter:latest
+    container_name: penpot-exporter
+    restart: always
+    environment:
+      PENPOT_FLAGS: "enable-login-with-password"
+      PENPOT_SECRET_KEY: "penpot-secret-key-change-in-production"
+      PENPOT_PUBLIC_URI: "http://penpot-frontend"
+      PENPOT_REDIS_URI: "redis://penpot-redis/0"
+
+  penpot-postgres:
+    image: postgres:15
+    container_name: penpot-postgres
+    restart: always
+    volumes:
+      - penpot_postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: penpot
+      POSTGRES_USER: penpot
+      POSTGRES_PASSWORD: penpot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U penpot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  penpot-redis:
+    image: redis:7
+    container_name: penpot-redis
+    restart: always
+
+volumes:
+  penpot_assets:
+  penpot_postgres:
