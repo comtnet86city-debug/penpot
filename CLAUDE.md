@@ -91,3 +91,8 @@ docker exec penpot-postgres psql -U penpot -d penpot \
 1. 開瀏覽器進入 http://localhost:9001
 2. 點「建立帳號」自助註冊
 3. 登入後到個人設定 → 語言 → 選「中文（繁體）」
+
+## 參見
+
+完整工作區環境說明（LLM 模型、外部服務、OpenClaw、所有 repo 清單）：
+`comtnet86city-debug/claude-workspace` → `~/CLAUDE.md`
